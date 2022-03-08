@@ -1,4 +1,3 @@
-
 import os
 import json
 import sys
@@ -31,11 +30,30 @@ def cmd_builder(setting, template_path, overrides):
     ]
 
 
-def dump_jsonl(train_csvdir, valid_csvdir, train_label_path, valid_label_path, out_jsonl_dir, label_type):
+# def dump_jsonl(train_csvdir, valid_csvdir, train_label_path, valid_label_path, out_jsonl_dir, label_type):
+#    train_path, valid_path = Path(out_jsonl_dir)/'train.jsonl', Path(out_jsonl_dir)/'valid.jsonl'
+#    Util.csvdir_to_jsonl(Path(train_csvdir), train_path, label_path=train_label_path, label_type=label_type)
+#    if valid_csvdir is not None:
+#        Util.csvdir_to_jsonl(Path(valid_csvdir), valid_path, label_path=valid_label_path, label_type=label_type)
+#    else:
+#        valid_path = None
+#    return train_path, valid_path
+
+def dump_jsonl(train_jsondir, valid_jsondir, out_jsonl_dir):     # changes maded here
     train_path, valid_path = Path(out_jsonl_dir)/'train.jsonl', Path(out_jsonl_dir)/'valid.jsonl'
-    Util.csvdir_to_jsonl(Path(train_csvdir), train_path, label_path=train_label_path, label_type=label_type)
-    if valid_csvdir is not None:
-        Util.csvdir_to_jsonl(Path(valid_csvdir), valid_path, label_path=valid_label_path, label_type=label_type)
+    with open(train_path, "w") as fout:
+        with open(train_jsondir,'r') as json_file_train:
+            new_lines_train = list(json_file_train)
+            for line in new_lines_train:
+                tmp = json.loads(line)
+                fout.write(json.dumps(tmp)+'\n')
+            
+    if valid_jsondir is not None:
+        with open(valid_path, "w") as fout:
+            with open(valid_jsondir,'r') as json_file_valid:
+                new_lines_valid = list(json_file_valid)
+                for line in new_lines_valid:
+                    tmp = json.loads(line)          
     else:
         valid_path = None
     return train_path, valid_path
@@ -44,26 +62,29 @@ def dump_jsonl(train_csvdir, valid_csvdir, train_label_path, valid_label_path, o
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_cell/train_csv")
-    parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_col/train_csv")
+    parser.add_argument("--train_json_dir", help="input json dir for training", default="./data/ft_sato/train50.jsonl")
     # parser.add_argument("--train_csv_dir", help="input csv dir for training", default="./data/ft_table/train_csv")
-    # parser.add_argument("--train_label_path", help="train label path", default="./data/ft_cell/train_label.csv")
-    parser.add_argument("--train_label_path", help="train label path", default="./data/ft_col/train_label.csv")
+    parser.add_argument("--train_label_path", help="train label path", default="./data/ft_sato/label.csv")
+    # parser.add_argument("--train_label_path", help="train label path", default="./data/ft_col/train_label.csv")
     # parser.add_argument("--train_label_path", help="train label path", default="./data/ft_table/train_label.csv")
     parser.add_argument("--out_model_dir", help="output model dir", default="./out_model")
-    parser.add_argument('--cache_cells', help="cache all initial cell emb", default=False, action='store_true')
-    parser.add_argument("--valid_csv_dir", help="input csv dir for validation")
+    parser.add_argument('--cache_cells', help="cache all initial cell emb", default=True, action='store_true')
+    parser.add_argument("--valid_json_dir", help="input csv dir for validation")
     parser.add_argument("--valid_label_path", help="valid label path")
     parser.add_argument("--batch_size", help="batch size for finetuning", default="1")
     parser.add_argument("--cuda_devices", help="cuda device id list", default=[0])
-    parser.add_argument("--config", help="config file for tabbie", default="./exp/ft_cell/cell.yml")
+    parser.add_argument("--config", help="config file for tabbie", default="./exp/ft_col/col.yml")
     args = parser.parse_args()
 
     # get label type
-    label_type = Util.get_label_type(args.train_label_path)
+    # label_type = Util.get_label_type(args.train_label_path)
 
     # dump jsonl
     tmpdir = tempfile.TemporaryDirectory()
-    train_path, valid_path = dump_jsonl(args.train_csv_dir, args.valid_csv_dir, args.train_label_path, args.valid_label_path, tmpdir.name, label_type)
+    label_type = "sato"
+    # train_path, valid_path = dump_jsonl(args.train_json_dir, args.valid_json_dir, args.train_label_path, args.valid_label_path, tmpdir.name, label_type)      \
+    
+    train_path, valid_path = dump_jsonl(args.train_json_dir, args.valid_json_dir, tmpdir.name)      # changes maded here
 
     # setup params
     params = Util.load_yaml(args.config)
@@ -78,17 +99,25 @@ if __name__ == "__main__":
     if args.cache_cells:
         bert_util = BertUtil(True)
         bert_util.dump_emb(train_path, Path(tmpdir.name))
-        os.environ['cache_dir'] = tmpdir.name
+    #    os.environ['cache_dir'] = tmpdir.name
         del bert_util
         torch.cuda.empty_cache()
 
+    # bert_util = BertUtil(True)
+    # bert_util.dump_emb(train_path, Path(tmpdir.name))
+    # #    os.environ['cache_dir'] = tmpdir.name
+    # del bert_util
+    # torch.cuda.empty_cache()
+
+    os.environ['cache_dir'] = tmpdir.name
     # run allennlp command
-    if args.valid_csv_dir is not None:
+    if args.valid_json_dir is not None:
         overrides = json.dumps({"distributed": {"cuda_devices": params['cuda_devices']}, "validation_data_path": str(valid_path)}) if len(params['cuda_devices']) > 1 else {}
     else:
         overrides = json.dumps({"distributed": {"cuda_devices": params['cuda_devices']}}) if len(params['cuda_devices']) > 1 else {}
 
-    cmd_builder(params, "exp/ft_{}/{}.jsonnet".format(label_type, label_type), overrides)
+    # cmd_builder(params, "exp/{}/{}.jsonnet".format(label_type, label_type), overrides)
+    cmd_builder(params, "exp/sato/sato.jsonnet", overrides)
     main()
 
 

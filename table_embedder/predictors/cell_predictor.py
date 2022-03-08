@@ -33,7 +33,7 @@ class CellPredictor(Predictor):
 
         instance = self._dataset_reader.text_to_instance(
             table_id=idx,
-            header=table_header,
+        #    header=table_header,
             cell_labels=cell_labels,
             col_labels=col_labels,
             table_labels=table_labels,

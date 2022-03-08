@@ -104,17 +104,23 @@ class TableEmbedder(Model):
 
         if os.getenv('model_path') is not None and os.getenv('learn_type') != 'pred':
             self.init_weight()
-
+        
         self.cls_col = np.load(os.getenv("clscol_path"))
         self.cls_row = np.load(os.getenv("clsrow_path"))
+        self.cache_dir = os.getenv("cache_dir")
         self.cache_usage = os.getenv("cache_usage")
         if self.cache_usage is not None:
             self.cache_util = CacheUtil(self.cache_usage, os.getenv("cell_db_path"))
         else:
             self.cache_util = None
 
-        id_path, npy_path = os.getenv('cache_id'), os.getenv('cache_npy')
-        self.cell_id, self.cell_feats = ToNpy.load_feats(id_path, npy_path)
+        # if os.getenv('model_path') is not None and os.getenv('learn_type') != 'pred':
+        #     id_path, npy_path = os.getenv('cache_id'), os.getenv('cache_npy')
+        #     self.cell_id, self.cell_feats = ToNpy.load_feats(id_path, npy_path)
+
+        if self.cache_dir is not None:   # change maded here
+            cache_dir = Path(self.cache_dir)
+            self.cell_feats, self.cell_id = ToNpy.load_cid(cache_dir/'cell_feats.npy', cache_dir/'cell_id.txt')
 
         self.opt_level = 'O0'
         self.label = Sato.load_label(label_path=os.getenv('label_path'))
@@ -225,6 +231,7 @@ class TableEmbedder(Model):
         # to col_emb
         # bert_header, bert_cell = TableUtil.get_bert_emb(indexed_headers, indexed_cells, table_info, bs, n_rows, n_cols, self.cache_usage, self.bert_embedder, self.cache_util, self.device, self.cell_id, self.feats)
         bert_header, bert_cell = TableUtil.to_bert_emb(table_info, bs, n_rows, n_cols, self.device, self.cell_id, self.cell_feats)
+        
         row_embs, col_embs, n_rows_cls, n_cols_cls = self.get_tabemb(bert_header, bert_cell, n_rows, n_cols, bs, table_mask, nrows, ncols)
         cls_embs = torch.cat([row_embs[:, 0, 1:, :], col_embs[:, 0, 1:, :]], dim=2)
 

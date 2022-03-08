@@ -16,6 +16,7 @@ from allennlp.modules.token_embedders import Embedding
 from allennlp.modules import FeedForward, TextFieldEmbedder, Seq2VecEncoder
 from allennlp.nn import InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics.categorical_accuracy import CategoricalAccuracy
+from allennlp.training.metrics.fbeta_measure import FBetaMeasure
 # from allennlp.modules.token_embedders import PretrainedBertEmbedder
 from table_embedder.models.lib.bert_token_embedder import PretrainedBertEmbedder
 
@@ -97,14 +98,16 @@ class TableEmbedder(Model):
         self.transformer_row10 = transformer_row10
         self.transformer_row11 = transformer_row11
         self.transformer_row12 = transformer_row12
-        self.loss = torch.nn.BCELoss()
+        #self.loss = torch.nn.CrossEntropyLoss()
         self.metrics = {
             "accuracy": CategoricalAccuracy(),
             "haccuracy": CategoricalAccuracy(),
             "caccuracy": CategoricalAccuracy(),
+            "f1": FBetaMeasure(average="micro")
         }
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.loss_func = torch.nn.BCELoss()
+        self.loss_func = torch.nn.CrossEntropyLoss()
+        self.n_classes = 4
 
         self.num_max_row_pos = 35
         self.num_max_col_pos = 25
@@ -135,24 +138,51 @@ class TableEmbedder(Model):
                 new_weights = weights.data
                 model_parameters[name].data.copy_(new_weights)
 
-    def pred_by_2d_transformer(self, row_embs, col_embs, table_mask_cls, bs, max_rows, max_cols):
-        cells = torch.cat([row_embs, col_embs], dim=3)  # (10, 15, 4, 1536)
-        out_prob_cell = self.feedforward(cells)  # (10, 15, 4, 2)
-        cell_mask_mod = table_mask_cls.reshape(bs, max_rows, max_cols, 1)
-        out_prob_cell = util.masked_softmax(out_prob_cell, cell_mask_mod)  # (10, 2)
-        return out_prob_cell
+   # def pred_by_2d_transformer(self, row_embs, col_embs, table_maszk_cls, bs, max_rows, max_cols):
+   #     cells = torch.cat([row_embs, col_embs], dim=3)  # (10, 15, 4, 1536)
+   #     out_prob_cell = self.feedforward(cells)  # (10, 15, 4, 2)
+   #     cell_mask_mod = table_mask_cls.reshape(bs, max_rows, max_cols, 1)
+   #     out_prob_cell = util.masked_softmax(out_prob_cell, cell_mask_mod)  # (10, 2)
+   #     return out_prob_cell
+    @staticmethod 
+    def get_cat_cls(row_embs, col_embs, nrows, ncols):
+        avg_embs = (row_embs + col_embs) / 2.0
+        avg_embs = avg_embs[:, 0, 1:, :]
+        cls_embs = avg_embs[:, 0, :]
+        for i in range(0, nrows):
+            cls_embs = torch.cat([cls_embs, avg_embs[:, i, :]], dim=1)
+        return cls_embs
 
-    def get_labels(self, table_info, bs, n_rows, n_cols):
-        header_labels = torch.zeros((bs, n_cols), device=self.device)
-        cell_labels = torch.zeros((bs, n_rows, n_cols), device=self.device)
-        for k, one_info in enumerate(table_info):
-            if 'col_labels' in one_info and one_info['col_labels'] is not None:
-                for label_idx in one_info['col_labels']:
-                    header_labels[k][label_idx] = 1
-            if 'cell_labels' in one_info and one_info['cell_labels'] is not None:
-                for label_idx in one_info['cell_labels']:
-                    cell_labels[k][label_idx[0]][label_idx[1]] = 1
-        return header_labels, cell_labels
+    @staticmethod
+    def get_labels(table_info):
+        labels = []
+        labels_1d = []
+        for one_info in table_info:
+            row_labels = copy.deepcopy(one_info['label_idx'])
+            labels.append(row_labels)
+            for elem in row_labels:
+                labels_1d.append(elem)
+        return labels_1d, labels
+
+    def pred_prob(self, cls_embs, labels):
+        out_prob = self.feedforward(cls_embs)
+        out_prob_1d = []
+        for k, one_prob in enumerate(out_prob):
+            out_prob_1d.append(one_prob.expand(len(labels[k]), self.n_classes))
+        out_prob_1d = torch.cat(out_prob_1d, dim=0)
+        return out_prob_1d, out_prob
+
+    # def get_labels(self, table_info, bs, n_rows, n_cols):
+    #    header_labels = torch.zeros((bs, n_cols), device=self.device)
+    #    cell_labels = torch.zeros((bs, n_rows, n_cols), device=self.device)
+    #    for k, one_info in enumerate(table_info):
+    #        if 'col_labels' in one_info and one_info['col_labels'] is not None:
+    #            for label_idx in one_info['col_labels']:
+    #                header_labels[k][label_idx] = 1
+    #        if 'cell_labels' in one_info and one_info['cell_labels'] is not None:
+    #            for label_idx in one_info['cell_labels']:
+    #                cell_labels[k][label_idx[0]][label_idx[1]] = 1
+    #    return header_labels, cell_labels
 
     def get_tabemb(self, bert_header, bert_data, n_rows, n_cols, bs, table_mask, nrows, ncols):
         row_pos_ids = torch.arange(0, self.num_max_row_pos, device=self.device, dtype=torch.long)
@@ -211,9 +241,10 @@ class TableEmbedder(Model):
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         accuracy = self.metrics["accuracy"].get_metric(reset=reset)
+        f1 = self.metrics["f1"].get_metric(reset=reset)["fscore"] 
         # h_accuracy = self.metrics["haccuracy"].get_metric(reset=reset)
         # c_accuracy = self.metrics["caccuracy"].get_metric(reset=reset)
-        return {'accuracy': accuracy}
+        return {'accuracy': accuracy, "f1": f1}
         # return {'accuracy': accuracy, 'h_acc': h_accuracy, 'c_acc': c_accuracy}
 
     def get_meta(self, table_info):
@@ -240,44 +271,51 @@ class TableEmbedder(Model):
             bert_header, bert_cell = TableUtil.to_bert_emb(table_info, bs, n_rows, n_cols, self.device, self.cell_id, self.cell_feats)
         # row_embs_cls, col_embs_cls, n_rows_cls, n_cols_cls, table_mask_cls = self.get_tab_emb(bert_header, bert_cell, n_rows, n_cols, table_info, bs, table_mask)
         row_embs, col_embs, n_rows_cls, n_cols_cls, table_mask_cls = self.get_tabemb(bert_header, bert_cell, n_rows, n_cols, bs, table_mask, nrows, ncols)
+        cls_embs = self.get_cat_cls(row_embs, col_embs, nrows, ncols)
         # table_mask = TableUtil.add_cls_mask(table_mask, bs, n_rows, n_cols, self.device, nrows, ncols)
         # print(row_embs.shape, col_embs.shape, table_mask.shape, bs, n_rows_cls, n_cols_cls)
 
         # to fake cell prob
-        prob_tables_cls = self.pred_by_2d_transformer(row_embs, col_embs, table_mask_cls, bs, n_rows_cls+1, n_cols_cls)
-        prob_headers, prob_cells = prob_tables_cls[:, 1, 1:, :], prob_tables_cls[:, 2:, 1:, :]  # (bs, n_rows, n_cols, 768)
+        # prob_tables_cls = self.pred_by_2d_transformer(row_embs, col_embs, table_mask_cls, bs, n_rows_cls+1, n_cols_cls)
+        # prob_headers, prob_cells = prob_tables_cls[:, 1, 1:, :], prob_tables_cls[:, 2:, 1:, :]  # (bs, n_rows, n_cols, 768)
 
         # get labels
-        header_labels, cell_labels = self.get_labels(table_info, bs, n_rows, n_cols)  # TODO: modify
-        labels = torch.cat((header_labels.reshape(bs, -1, header_labels.shape[-1]), cell_labels), axis=1)
-        header_labels_1d, cell_labels_1d = header_labels.reshape(-1), cell_labels.reshape(-1)
-        header_mask_1d, cell_mask_1d = table_mask[:, 0, :].reshape(-1), table_mask[:, 1:, :].reshape(-1)
-        prob_headers_pos, prob_cells_pos, prob_headers_nega, prob_cells_nega = prob_headers[:, :, 1], prob_cells[:, :, :, 1], prob_headers[:, :, 0], prob_cells[:, :, :, 0]
-        prob_headers_pos_1d, prob_cells_pos_1d, prob_headers_nega_1d, prob_cells_nega_1d = prob_headers_pos.reshape(-1), prob_cells_pos.reshape(-1), prob_headers_nega.reshape(-1), prob_cells_nega.reshape(-1)
-
+       
+        # header_labels, cell_labels = self.get_labels(table_info, bs, n_rows, n_cols)  # TODO: modify
+        # labels = torch.cat((header_labels.reshape(bs, -1, header_labels.shape[-1]), cell_labels), axis=1)
+        # header_labels_1d, cell_labels_1d = header_labels.reshape(-1), cell_labels.reshape(-1)
+        # header_mask_1d, cell_mask_1d = table_mask[:, 0, :].reshape(-1), table_mask[:, 1:, :].reshape(-1)
+        #prob_headers_pos, prob_cells_pos, prob_headers_nega, prob_cells_nega = prob_headers[:, :, 1], prob_cells[:, :, :, 1], prob_headers[:, :, 0], prob_cells[:, :, :, 0]
+        # prob_headers_pos_1d, prob_cells_pos_1d, prob_headers_nega_1d, prob_cells_nega_1d = prob_headers_pos.reshape(-1), prob_cells_pos.reshape(-1), prob_headers_nega.reshape(-1), prob_cells_nega.reshape(-1)
+        
+        labels_1d, labels = self.get_labels(table_info) 
+        labels_1d = torch.LongTensor(labels_1d).to(device=self.device)
+        out_prob_1d, out_prob = self.pred_prob(cls_embs, labels)
+        loss = self.loss_func(out_prob_1d, labels_1d)
         # cell_loss = self.loss_func(prob_cells_pos_1d[cell_mask_1d.bool()], cell_labels_1d[cell_mask_1d.bool()].float())
-        header_loss = self.loss_func(prob_headers_pos_1d[header_mask_1d.bool()], header_labels_1d[header_mask_1d.bool()].float())
+        # header_loss = self.loss_func(prob_headers_pos_1d[header_mask_1d.bool()], header_labels_1d[header_mask_1d.bool()].float())
         # print(prob_cells_nega_1d.shape, prob_cells_pos_1d.shape, cell_mask_1d.shape)
         # prob_cells = torch.stack([prob_cells_nega_1d, prob_cells_pos_1d], dim=1)
         # prob_cells = torch.stack([prob_cells_nega_1d, prob_cells_pos_1d], dim=1)
         # self.metrics['accuracy'](prob_cells, cell_labels_1d, mask=cell_mask_1d)
         # self.metrics['accuracy'](prob_headers, header_labels_1d, mask=header_mask_1d)
 
-        cell_loss = self.loss_func(prob_cells_pos_1d[cell_mask_1d.bool()], cell_labels_1d[cell_mask_1d.bool()].float())
-        prob_headers_acc = torch.stack([prob_headers_nega_1d, prob_headers_pos_1d], dim=1)
-        prob_cells_acc = torch.stack([prob_cells_nega_1d, prob_cells_pos_1d], dim=1)
+        # cell_loss = self.loss_func(prob_cells_pos_1d[cell_mask_1d.bool()], cell_labels_1d[cell_mask_1d.bool()].float())
+        # prob_headers_acc = torch.stack([prob_headers_nega_1d, prob_headers_pos_1d], dim=1)
+        # prob_cells_acc = torch.stack([prob_cells_nega_1d, prob_cells_pos_1d], dim=1)
         # self.metrics['accuracy'](prob_cells, cell_labels_1d, mask=cell_mask_1d)
-        self.metrics['accuracy'](prob_headers_acc, header_labels_1d, mask=header_mask_1d)
+        # self.metrics['f1'](prob_headers_acc, header_labels_1d, mask=header_mask_1d.bool())
+        # self.metrics['accuracy'](prob_headers_acc, header_labels_1d, mask=header_mask_1d)
 
         # h_loss_weight = 0.0
         # loss = cell_loss * (1.0-h_loss_weight) + header_loss * h_loss_weight
-        output_dict = {'loss': header_loss}
+        # output_dict = {'loss': header_loss}
         if not self.training:
             output_dict = self.add_metadata(table_info, output_dict)
             # output_dict['prob_headers'] = prob_headers_pos
             # output_dict['prob_cells'] = prob_cells_pos
-            output_dict['prob_headers'] = prob_headers
-            output_dict['prob_cells'] = prob_cells
+            output_dict['prob_headers'] = labels
+            # output_dict['prob_cells'] = prob_cells
         return output_dict
 
     @staticmethod

@@ -49,7 +49,7 @@
   #   }
   # },
   "train_data_path": std.extVar("train_data_path"),
-  "validation_data_path": std.extVar("valid_data_path"),
+  # "validation_data_path": std.extVar("valid_data_path"),
   # "validation_data_path": "/mnt/nfs/work1/miyyer/hiida/data/sato/0630/s_test.jsonl",
   "model": {
     "type": "finetune_sato",
@@ -372,10 +372,10 @@
   },
   # "distributed": {"cuda_devices": [0,1,2,3,4,5,6,7]},  # set by using overrides
   "trainer": {
-    "opt_level": "O0",
-    "num_epochs": 15,
+    "opt_level": "None",
+    "num_epochs": 7,
     "patience": 10000,
-    "cuda_device": 0,
+    "cuda_device": -1,
     "optimizer": {
       "type": "adam",
       "lr": 0.00002

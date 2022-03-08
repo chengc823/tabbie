@@ -49,6 +49,8 @@
   #   }
   # },
   "train_data_path": std.extVar("train_data_path"),
+  # "test_data_path": std.extVar("test_data_path"),
+  # "evaluate_on_test": true,
   # "validation_data_path": std.extVar("valid_data_path"),
   # "validation_data_path": "/mnt/nfs/work1/miyyer/hiida/data/sato/0630/s_test.jsonl",
   "model": {
@@ -354,20 +356,20 @@
       "use_positional_encoding": false,
     },
     "feedforward": {
-      "input_dim": 1536,
+      "input_dim": 35*768,
       # "input_dim": 768,
       "num_layers": 1,
-      "hidden_dims": [2],
+      "hidden_dims": [4],
       "activations": ["linear"],
       "dropout": [0.0]
     },
   },
   # "distributed": {"cuda_devices": [0,1,2,3,4,5,6,7]},  # set by using overrides
   "trainer": {
-    "opt_level": "O0",
+    "opt_level": "None",
     "num_epochs": 2,
     "patience": 10000,
-    "cuda_device": 0,
+    "cuda_device": -1,
     "optimizer": {
       "type": "adam",
       "lr": 0.00002

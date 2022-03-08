@@ -47,6 +47,7 @@ class BertUtil:
     def dump_emb(self, jsonl_path, out_dir, bs=20, feat_dim=768):
         cells = Util.get_uniq_cells(jsonl_path)
         n_cells, pad_len = len(cells), bs-len(cells)%bs
+        print(n_cells)
         cells_batches = np.array(cells + ['' for i in range(pad_len)]).reshape(-1, bs)
 
         bert_emb = np.empty((0, feat_dim), dtype=np.float32)

@@ -25,6 +25,7 @@ def cmd_builder(setting, template_path, overrides):
     ]
 
 
+
 if __name__ == "__main__":
     params = Util.load_yaml('exp/sato/sato.yml')
     if os.getenv('CUDA_VISIBLE_DEVICES') is not None:
