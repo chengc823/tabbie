@@ -25,6 +25,7 @@ from table_embedder.models.lib.stacked_self_attention import StackedSelfAttentio
 from table_embedder.models.cache_util import CacheUtil
 from scripts.sato import Sato
 from scripts.to_npy import ToNpy
+from allennlp.training.metrics.fbeta_measure import FBetaMeasure
 
 
 @Model.register("finetune_sato")
@@ -95,6 +96,8 @@ class TableEmbedder(Model):
         self.loss = torch.nn.BCELoss()
         self.metrics = {
             "accuracy": CategoricalAccuracy(),
+            "f1-micro": FBetaMeasure(average="micro"),
+            "f1-macro": FBetaMeasure(average="macro")
         }
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -182,7 +185,11 @@ class TableEmbedder(Model):
     @overrides
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         accuracy = self.metrics["accuracy"].get_metric(reset=reset)
-        return {'accuracy': accuracy}
+        f1_micro = self.metrics["f1-micro"].get_metric(reset=reset)["fscore"] 
+        f1_macro = self.metrics["f1-macro"].get_metric(reset=reset)["fscore"] 
+        # h_accuracy = self.metrics["haccuracy"].get_metric(reset=reset)
+        # c_accuracy = self.metrics["caccuracy"].get_metric(reset=reset)
+        return {'accuracy': accuracy, "f1-micro": f1_micro, "f1-macro": f1_macro}
 
     def pred_prob(self, cls_embs, bs, n_cols, label_masks, labels):
         out_prob = self.top_feedforward(cls_embs)
@@ -195,6 +202,8 @@ class TableEmbedder(Model):
         loss_func = torch.nn.CrossEntropyLoss()
         loss = loss_func(out_prob_1d[label_masks_1d], labels_1d[label_masks_1d].long())
         self.metrics['accuracy'](out_prob_1d[label_masks_1d], labels_1d[label_masks_1d].long())
+        self.metrics['f1-micro'](out_prob_1d[label_masks_1d], labels_1d[label_masks_1d].long())
+        self.metrics['f1-macro'](out_prob_1d[label_masks_1d], labels_1d[label_masks_1d].long())
         return out_prob_1d, out_prob, loss
 
     def get_pred_labels(self, out_prob, table_info):

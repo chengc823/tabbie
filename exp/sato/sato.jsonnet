@@ -373,7 +373,7 @@
   # "distributed": {"cuda_devices": [0,1,2,3,4,5,6,7]},  # set by using overrides
   "trainer": {
     "opt_level": "None",
-    "num_epochs": 7,
+    "num_epochs": 6,
     "patience": 10000,
     "cuda_device": -1,
     "optimizer": {

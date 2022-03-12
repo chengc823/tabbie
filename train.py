@@ -81,7 +81,8 @@ if __name__ == "__main__":
 
     # dump jsonl
     tmpdir = tempfile.TemporaryDirectory()
-    label_type = "sato"
+    # tmpdir = "./data/ft_sato"
+    # label_type = "sato"
     # train_path, valid_path = dump_jsonl(args.train_json_dir, args.valid_json_dir, args.train_label_path, args.valid_label_path, tmpdir.name, label_type)      \
     
     train_path, valid_path = dump_jsonl(args.train_json_dir, args.valid_json_dir, tmpdir.name)      # changes maded here

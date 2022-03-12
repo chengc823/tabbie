@@ -60,6 +60,23 @@ class BertUtil:
             bert_emb = np.vstack([bert_emb, emb_batch])
         np.save(out_dir/'cell_feats.npy', bert_emb[:n_cells])
         Util.dump_list(cells[:n_cells], out_dir/'cell_id.txt')
+    
+    # def dump_emb(self, jsonl_path, out_dir, bs=20, feat_dim=768):
+    #     cells = Util.get_uniq_cells(jsonl_path)
+    #     n_cells, pad_len = len(cells), bs-len(cells)%bs
+    #     print(n_cells)
+    #     cells_batches = np.array(cells + ['' for i in range(pad_len)]).reshape(-1, bs)
+
+    #     bert_emb = np.empty((0, feat_dim), dtype=np.float32)
+    #     for cells_batch in cells_batches:
+    #         token_ids = self.to_token_ids(cells_batch)
+    #         token_ids = token_ids.to(self.device, dtype=torch.long)
+    #         emb_batch = self.bert_embedder(token_ids)[0, :, 0, :]
+    #         emb_batch = torch.autograd.Variable(emb_batch.clone(), requires_grad=False).detach().cpu().numpy()
+    #         emb_batch = emb_batch.reshape(-1, feat_dim)
+    #         bert_emb = np.vstack([bert_emb, emb_batch])
+    #     np.save(out_dir/'cell_feats.npy', bert_emb[:n_cells])
+    #     Util.dump_list(cells[:n_cells], out_dir/'cell_id.txt')
 
 
 def main():
