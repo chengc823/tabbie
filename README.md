@@ -1,7 +1,10 @@
 # Tabbie: Tabular Information Embedding
-This repository includes scripts for Tabbie(Tabular Information Embedding) model. 
+This repository is forked from https://github.com/SFIG611/tabbie.git, which includes scripts for Tabbie(Tabular Information Embedding) model. 
 The link to the paper is as follows.
 https://arxiv.org/pdf/2105.02584.pdf
+
+This repository is only for the use of our team project in the fall semester 2021 at the University of Mannheim with the topic of Data Integration using Deep Learning. 
+
 
 ## (setup 1): update cuda version from 10.0 to 10.1 (for AWS deep learning ami)
 ```
@@ -35,16 +38,15 @@ https://drive.google.com/drive/folders/1vAMv09j-VlWHKd5djiRGuC16yb-lhJO0
 mv freq.tar.gz mix.tar.gz tabbie/model
 ```
 
-# corrupt cell detection
+
+# finetuning with column type prediction
 ```
 conda activate table_emb_dev
-python pretrain_pred.py  # default input data is "data/pretrain/sample.jsonl"
+cd tabbie
+python train.py --train_csv_dir ./data/ft_sato/train50.jsonl --train_label_path ./data/ft_sato/label.csv
+python pred.py --test_csv_dir ./data/ft_sato/test10.jsonl --model_path ./out_model/model.tar.gz
+python evaluate.py --test_csv_dir ./data/ft_sato/test10.jsonl --model_path ./out_model/model.tar.gz
 ```
-
-## Input Jsonl file
-- id (str): identical value for table
-- faked_cells (2d list, row_id/col_id=0,1,2...): [[row_id1, col_id1, "corrupt_cell1"], [row_id2, col_id2, "corrupt_cell2"], ...] 
-- faked_headers (2d list, col_id=0,1,2...): [[col_id1, "corrupt_header1"], [col_id2, "corrupt_header2"], ...]
 
 # finetuning tables with cell labels
 ```
@@ -69,7 +71,6 @@ cd tabbie
 python train.py --train_csv_dir ./data/ft_table/train_csv --train_label_path ./data/ft_table/train_label.csv
 python pred.py --test_csv_dir ./data/ft_table/test_csv --model_path ./out_model/model.tar.gz
 ```
-
 
 
 
