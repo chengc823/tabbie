@@ -30,9 +30,6 @@ class CellPredictor(Predictor):
             table_data = np.array(table_data)[:, :max_cols].tolist()
         n_cols = len(table_data[0])
         n_rows = len(table_data)
-        # cell_labels = line['cell_labels'] if 'cell_labels' in line else None
-        # col_labels = line['col_labels'] if 'col_labels' in line else None
-        # table_labels = line['table_labels'] if 'table_labels' in line else None
         label_idx = line['label_idx'] if 'label_idx' in line.keys() else None
         col_idx = line['col_idx'] if 'col_idx' in line.keys() else None 
 
@@ -41,12 +38,9 @@ class CellPredictor(Predictor):
             table_header=table_header,
             n_cols = n_cols,
             n_rows = n_rows,
-        #    cell_labels=cell_labels,
             label_idx=label_idx,
             col_idx=col_idx,
-        #    table_labels=table_labels,
             table_data=table_data,
-        #    table=table
             fname=fname 
         )
         return instance
