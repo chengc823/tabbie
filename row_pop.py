@@ -8,6 +8,7 @@ sys.path += ['./_util', './downstream', './scripts', './table_embedder/dataset_r
 from scripts.util import Util
 
 
+
 def cmd_builder(setting, config_file, overrides):
     os.environ["ALLENNLP_DEBUG"] = "TRUE"
     for name, val in setting.items():

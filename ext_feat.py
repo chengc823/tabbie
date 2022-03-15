@@ -17,6 +17,7 @@ from allennlp.data.token_indexers.pretrained_transformer_indexer import Pretrain
 from table_embedder.readers.preprocess import TablesDatasetReader
 
 
+
 class ExtFeat:
     def __init__(self, model_path):
         self.model = ExtFeat.load_model(model_path)
