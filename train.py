@@ -39,6 +39,8 @@ def cmd_builder(setting, template_path, overrides):
 #        valid_path = None
 #    return train_path, valid_path
 
+
+# rewrite to fit for jsonl input data
 def dump_jsonl(train_jsondir, valid_jsondir, out_jsonl_dir):     # changes maded here
     train_path, valid_path = Path(out_jsonl_dir)/'train.jsonl', Path(out_jsonl_dir)/'valid.jsonl'
     with open(train_path, "w") as fout:
