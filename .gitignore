@@ -4,3 +4,4 @@ model/
 out_model/
 data/ft_sato/cell_feats.npy
 data/ft_sato/cid_map.json
+data/pretrain

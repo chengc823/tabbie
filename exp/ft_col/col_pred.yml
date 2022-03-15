@@ -11,7 +11,7 @@ cuda_devices: [-1]
 # train_data_path: ./data/ft_cell/ft_cell100.jsonl  # TODO: modify
 clscol_path: ./data/clscol.npy
 clsrow_path: ./data/clsrow.npy
-label_path: ./data/ft_sato/label.csv
+label_path: ./data/ft_sato/label.csv  # for column type prediction usecase
 #out_dir: ./data/ft_cell/debug
 #n_seed_cols: '3'
 

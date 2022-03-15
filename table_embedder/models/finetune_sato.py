@@ -120,8 +120,9 @@ class TableEmbedder(Model):
         # if os.getenv('model_path') is not None and os.getenv('learn_type') != 'pred':
         #     id_path, npy_path = os.getenv('cache_id'), os.getenv('cache_npy')
         #     self.cell_id, self.cell_feats = ToNpy.load_feats(id_path, npy_path)
-
-        if self.cache_dir is not None:   # change maded here
+        
+        # create cell_feats.npy and cid_map.json
+        if self.cache_dir is not None:
             cache_dir = Path(self.cache_dir)
             self.cell_feats, self.cell_id = ToNpy.load_cid(cache_dir/'cell_feats.npy', cache_dir/'cell_id.txt')
 

@@ -361,11 +361,12 @@
       "activations": ["linear"],
       "dropout": [0.0]
     },
+    
     "top_feedforward": {
       "input_dim": 1536,
       # "input_dim": 768,
       "num_layers": 1,
-      "hidden_dims": [78],
+      "hidden_dims": [78],         
       "activations": ["linear"],
       "dropout": [0.0]
     },

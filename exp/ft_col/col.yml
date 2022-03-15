@@ -1,6 +1,6 @@
 
 model_path: ./model/freq.tar.gz
-label_path: ./data/ft_sato/label.csv
+label_path: ./data/ft_sato/label.csv # for column type prediction
 clscol_path: ./data/clscol.npy
 clsrow_path: ./data/clsrow.npy
 
