@@ -11,7 +11,6 @@ from scripts.bert import BertUtil
 sys.path += ['./scripts', './table_embedder/dataset_readers', './table_embedder/models']
 from scripts.util import Util
 
-
 def cmd_builder(setting, template_path, overrides):
     setting.pop('cuda_devices')
     for name, val in setting.items():
