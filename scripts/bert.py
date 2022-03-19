@@ -29,7 +29,7 @@ class BertUtil:
     def to_field(self, cells):
         cell_field: List[TextField] = []
         for cell in cells:
-            tokenized_cell = self.tokenizer.tokenize(cell)
+            tokenized_cell = self.tokenizer.tokenize(cell)[:512]
             # https://github.com/allenai/allennlp/issues/1887
             # tokenized_header = [Token(token.text) for token in tokenized_header]
             cell_field.append(TextField(tokenized_cell, self.token_indexers))
