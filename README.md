@@ -47,31 +47,7 @@ python train.py --train_csv_dir ./data/ft_sato/train50.jsonl --train_label_path 
 python pred.py --test_csv_dir ./data/ft_sato/test10.jsonl --model_path ./out_model/model.tar.gz
 python evaluate.py --test_csv_dir ./data/ft_sato/test10.jsonl --model_path ./out_model/model.tar.gz
 ```
-
-# finetuning tables with cell labels
-```
-conda activate table_emb_dev
-cd tabbie
-python train.py --train_csv_dir ./data/ft_cell/train_csv --train_label_path ./data/ft_cell/train_label.csv
-python pred.py --test_csv_dir ./data/ft_cell/test_csv --model_path ./out_model/model.tar.gz
-```
-
-# finetuning tables with column labels
-```
-conda activate table_emb_dev
-cd tabbie
-python train.py --train_csv_dir ./data/ft_col/train_csv --train_label_path ./data/ft_col/train_label.csv
-python pred.py --test_csv_dir ./data/ft_col/test_csv --model_path ./out_model/model.tar.gz
-```
-
-# finetuning tables with table labels
-```
-conda activate table_emb_dev
-cd tabbie
-python train.py --train_csv_dir ./data/ft_table/train_csv --train_label_path ./data/ft_table/train_label.csv
-python pred.py --test_csv_dir ./data/ft_table/test_csv --model_path ./out_model/model.tar.gz
-```
-
+(make sure label index starts from 0 as consecutive integers. The number of classes needs to be adjusted accordingly in finetune_sato.py and sato.jsonnet)
 
 
 
