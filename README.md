@@ -1,11 +1,11 @@
-# Tabbie: Tabular Information Embedding
 This repository is forked from https://github.com/SFIG611/tabbie.git, which includes scripts for Tabbie(Tabular Information Embedding) model. 
 The link to the paper is as follows.
 https://arxiv.org/pdf/2105.02584.pdf
 
-This repository is only for the use of our team project in the fall semester 2021 at the University of Mannheim with the topic of Data Integration using Deep Learning. 
+This repository is only for the use of our team project in the fall semester 2021 at the University of Mannheim with the topic of Data Integration using Deep Learning.
 
-
+# Tabbie: Tabular Information Embedding
+ 
 ## (setup 1): update cuda version from 10.0 to 10.1 (for AWS deep learning ami)
 ```
 # https://docs.aws.amazon.com/dlami/latest/devguide/tutorial-base.html
